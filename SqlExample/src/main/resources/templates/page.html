@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>SQL example</title>
+</head>
+<body>
+<h1>SQL Example</h1>
+<form th:action="@{/}" method="GET">
+    <label>
+        ID:
+        <input type="text" name="id"/>
+    </label>
+    <input type="hidden" name="Submit" value="Submit" />
+    <button type="submit">Submit</button>
+</form>
+
+<div th:if="${isSuccess}">
+    <p th:text="${'id: ' + result[0]}"></p>
+    <p th:text="${'name: ' + result[1]}"></p>
+</div>
+<div th:if="${isSuccess != null && !isSuccess}">
+    <p>User not found</p>
+</div>
+</body>
+</html>
