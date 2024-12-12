@@ -74,31 +74,33 @@ private static final String GET_USER_SQL = "SELECT id, name FROM users WHERE id 
     private final JdbcTemplate jdbcTemplate;
 
     @GetMapping("/")
-    public String makeRequest(@RequestParam(value = "id", required = false) String id,
-                            @RequestParam(value = "Submit", required = false) String submit,
-                            Model model) {
+    public ModelAndView makeRequest(@RequestParam(value = "id", required = false) String id,
+                            @RequestParam(value = "Submit", required = false) String submit) {
+        ModelAndView modelAndView = new ModelAndView(TEMPLATE_NAME);
+
         if (id == null || submit == null) {
-            model.addAttribute(IS_SUCCESS_ATTRIBUTE_NAME, null);
-            return TEMPLATE_NAME;
+            modelAndView.addObject(IS_SUCCESS_ATTRIBUTE_NAME, null);
+            return modelAndView;
         }
 
-        long idParam = 0;
+        long idParam;
         try {
             idParam = Long.parseLong(id);
         } catch (NumberFormatException e) {
-            model.addAttribute(IS_SUCCESS_ATTRIBUTE_NAME, false);
-            return TEMPLATE_NAME;
+            modelAndView.addObject(IS_SUCCESS_ATTRIBUTE_NAME, false);
+            modelAndView.setStatus(HttpStatus.NOT_FOUND);
+            return modelAndView;
         }
         var result = jdbcTemplate.queryForRowSet(GET_USER_SQL, idParam);
         if (result.next()) {
-            model.addAttribute(RESULT_ATTRIBUTE_NAME,
+            modelAndView.addObject(RESULT_ATTRIBUTE_NAME,
                 new String[] {result.getString("id"), result.getString("name")});
-            model.addAttribute(IS_SUCCESS_ATTRIBUTE_NAME, true);
+            modelAndView.addObject(IS_SUCCESS_ATTRIBUTE_NAME, true);
         } else {
-            model.addAttribute(IS_SUCCESS_ATTRIBUTE_NAME, false);
+            modelAndView.addObject(IS_SUCCESS_ATTRIBUTE_NAME, false);
+            modelAndView.setStatus(HttpStatus.NOT_FOUND);
         }
-
-        return TEMPLATE_NAME;
+        return modelAndView;
     }
 ```
 
@@ -176,4 +178,32 @@ python sqlmap.py -u "http://localhost:8080/?id=1&Submit=Submit" --batch --banner
 
 ### 5. Использовать Burp для нахождения уязвимости в веб-ресурсе
 
-Еще одним инструментом для поиска уязвимостей в веб-ресурсе является Burp. С его помощью так же можно находить и эксплуатировать уязвимости SQL инъекции.
+Еще одним инструментом для поиска уязвимостей в веб-ресурсе является Burp. С его помощью так же можно находить и эксплуатировать уязвимости SQL инъекции. Применим этот инструмент к веб-ресурсу DVWA.
+
+Используем встроенный браузер в Burn, чтобы перехватить запрос на сервер в DVWA.
+
+![Burn перехват](imgs/intercept_burn.png)
+
+После чего, нажав на запрос правой кнопкой мыши, отправим его в intruder, где выделим участок в запросе, который будет подвержен атаке.
+
+![Burn intruder](imgs/dvwa_intruder.png)
+
+Загрузим список комбинаций SQL инъекций, который был найден на просторах гитхаба, и выберем параметр replace в payload processing.
+
+![Burp payload processing](imgs/dvwa_payload_processing.png)
+
+Запустим процесс атаки.
+
+![Burp атака](imgs/dvwa_burn_attack.png)
+
+Базовая версия Burn дает очень скромные ресурсы для атак, однако этого достаточно, чтобы заметить, что веб-ресурс DVWA ведет себя крайне нестабильно, и многие атаки увенчиваются успехом. Пример успешной атаки можно увидеть на скриншоте.
+
+![Burp успешная атака](imgs/dvwa_burn_success.png)
+
+Попробуем применить Burp к разработанной раннее системе.
+
+![Burp перехват](imgs/java_burp_intercept.png) 
+![Burp intruder](imgs/java_burp_intruder.png)
+![Burp атака](imgs/java_burp_attack.png)
+
+
